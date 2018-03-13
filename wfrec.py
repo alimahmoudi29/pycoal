@@ -4,13 +4,16 @@ import numpy as np
 import sys
 
 
+def sumIntervalTree(itree):
+    return sum([i[1]-i[0]-1 for i in itree])
+
 def wfrec(nsam, rho, nsites, theta):
     samples = []
     for i in range(nsam):
         samples.append(it.IntervalTree([it.Interval(0, nsites)]))
 
     links = np.array(
-        [i[1] - i[0] - 1 for j in samples for i in j], dtype=np.int)
+        [sumIntervalTree(i) for i in samples], dtype=np.int)
     nlinks = links.sum()
 
     n = nsam
@@ -34,6 +37,7 @@ def wfrec(nsam, rho, nsites, theta):
         t += np.random.exponential(4. / (rcoal + rrec), 1)[0]
         assert len(samples) == len(links), "sample/link error"
         if iscoal is True:
+            print("coal")
             chroms = np.sort(np.random.choice(n, 2, replace=False))
             c1 = chroms[0]
             c2 = chroms[1]
@@ -61,38 +65,39 @@ def wfrec(nsam, rho, nsites, theta):
             next_index += 1
             n -= 1
         else:
+            print("rec")
             # Pick a chrom proportional to
             # its total size:
-            print("check", len(samples), len(sample_indexes), len(links))
+            # print("check", len(samples), len(sample_indexes), len(links))
             chrom = np.random.choice(
                 len(sample_indexes), 1, p=links / links.sum())[0]
-            print(chrom)
-            print(len(samples[chrom]))
+            # print(chrom)
+            # print(len(samples[chrom]))
             mnpos = min([i for j in samples[chrom]
                          for i in j if i is not None])
             mxpos = max([i for j in samples[chrom]
                          for i in j if i is not None])
             pos = np.random.randint(mnpos, mxpos)
-            print("to chop",samples[chrom])
+            if pos == mnpos:
+                print ("MNPOS!!!!")
+            # print("to chop",pos,samples[chrom])
             samples[chrom].chop(pos, pos)
-            print("chopped",samples[chrom])
+            # print("chopped",samples[chrom])
             tc = it.IntervalTree([i for i in samples[chrom] if i[0] >= pos])
             samples[chrom].remove_overlap(pos, nsites)
-            if len(samples[chrom]) == 0:
-                print(pos,tc)
-                sys.exit(0)
             samples.append(tc)
             sample_indexes.append(next_index)
-            print(samples)
             next_index += 1
             n += 1
 
+        assert all([len(i)>0 for j in samples for i in j]), "empty IntervalTree"
         assert len(samples) == len(sample_indexes), "sample/sample_index error"
         links = np.array(
-            [i[1] - i[0] - 1 for j in samples for i in j], dtype=np.int)
+            [sumIntervalTree(i) for i in samples], dtype=np.int)
         nlinks = links.sum()
-        # print(samples)
-        # print(len(samples),len(links))
+        print(samples)
+        print(links)
+        print(len(samples),len(links))
         assert len(samples) == len(links), "sample/link error 2"
 
     msprime.sort_tables(nodes=nodes, edges=edges)
@@ -104,7 +109,7 @@ def test():
     np.random.seed(42)
     msp_rng = msprime.RandomGenerator(84)
     for i in range(1000):
-        ts = wfrec(100, 0, 1000, 100)
+        ts = wfrec(10, 10, 1000, 100)
         sites = msprime.SiteTable()
 
         mutations = msprime.MutationTable()
