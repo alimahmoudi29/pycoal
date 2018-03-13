@@ -37,7 +37,6 @@ def wfrec(nsam, rho, nsites, theta):
         t += np.random.exponential(4. / (rcoal + rrec), 1)[0]
         assert len(samples) == len(links), "sample/link error"
         if iscoal is True:
-            print("coal")
             chroms = np.sort(np.random.choice(n, 2, replace=False))
             c1 = chroms[0]
             c2 = chroms[1]
@@ -65,24 +64,16 @@ def wfrec(nsam, rho, nsites, theta):
             next_index += 1
             n -= 1
         else:
-            print("rec")
             # Pick a chrom proportional to
             # its total size:
-            # print("check", len(samples), len(sample_indexes), len(links))
             chrom = np.random.choice(
                 len(sample_indexes), 1, p=links / links.sum())[0]
-            # print(chrom)
-            # print(len(samples[chrom]))
             mnpos = min([i for j in samples[chrom]
                          for i in j if i is not None])
             mxpos = max([i for j in samples[chrom]
                          for i in j if i is not None])
             pos = np.random.randint(mnpos, mxpos)
-            if pos == mnpos:
-                print ("MNPOS!!!!")
-            # print("to chop",pos,samples[chrom])
             samples[chrom].chop(pos, pos)
-            # print("chopped",samples[chrom])
             tc = it.IntervalTree([i for i in samples[chrom] if i[0] >= pos])
             samples[chrom].remove_overlap(pos, nsites)
             samples.append(tc)
@@ -90,16 +81,15 @@ def wfrec(nsam, rho, nsites, theta):
             next_index += 1
             n += 1
 
-        assert all([len(i)>0 for j in samples for i in j]), "empty IntervalTree"
+        assert all([len(i)>0 for i in samples]), "empty IntervalTree"
         assert len(samples) == len(sample_indexes), "sample/sample_index error"
         links = np.array(
             [sumIntervalTree(i) for i in samples], dtype=np.int)
         nlinks = links.sum()
-        print(samples)
-        print(links)
-        print(len(samples),len(links))
         assert len(samples) == len(links), "sample/link error 2"
-
+    for i in range(len(edges)):
+        assert edges[i].parent < len(nodes), "parent error"
+        assert edges[i].child < len(nodes), "child error"
     msprime.sort_tables(nodes=nodes, edges=edges)
     return msprime.load_tables(nodes=nodes, edges=edges)
 
@@ -109,7 +99,8 @@ def test():
     np.random.seed(42)
     msp_rng = msprime.RandomGenerator(84)
     for i in range(1000):
-        ts = wfrec(10, 10, 1000, 100)
+        print(i)
+        ts = wfrec(100, 100, 1000, 100)
         sites = msprime.SiteTable()
 
         mutations = msprime.MutationTable()
