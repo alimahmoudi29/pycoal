@@ -34,7 +34,6 @@ def wfrec(nsam, rho, nsites, theta):
         t += np.random.exponential(4. / (rcoal + rrec), 1)[0]
         assert len(samples) == len(links), "sample/link error"
         if iscoal is True:
-            print("coal")
             chroms = np.sort(np.random.choice(n, 2, replace=False))
             c1 = chroms[0]
             c2 = chroms[1]
@@ -46,6 +45,10 @@ def wfrec(nsam, rho, nsites, theta):
                 edges.add_row(left=i[0], right=i[1],
                               parent=next_index, child=sample_indexes[c2])
             newchrom = it.IntervalTree()
+            # Merge intervals of the two chromosomes
+            # and remove overlaps
+            for i in samples[c1]:
+                newchrom.append(i)
             for i in samples[c2]:
                 newchrom.append(i)
             newchrom.merge_overlaps()
@@ -58,7 +61,6 @@ def wfrec(nsam, rho, nsites, theta):
             next_index += 1
             n -= 1
         else:
-            print("rec")
             # Pick a chrom proportional to
             # its total size:
             print("check", len(samples), len(sample_indexes), len(links))
@@ -89,8 +91,8 @@ def wfrec(nsam, rho, nsites, theta):
         links = np.array(
             [i[1] - i[0] - 1 for j in samples for i in j], dtype=np.int)
         nlinks = links.sum()
-        print(samples)
-        print(len(samples),len(links))
+        # print(samples)
+        # print(len(samples),len(links))
         assert len(samples) == len(links), "sample/link error 2"
 
     msprime.sort_tables(nodes=nodes, edges=edges)
@@ -102,7 +104,7 @@ def test():
     np.random.seed(42)
     msp_rng = msprime.RandomGenerator(84)
     for i in range(1000):
-        ts = wfrec(10, 100, 1000, 100)
+        ts = wfrec(100, 0, 1000, 100)
         sites = msprime.SiteTable()
 
         mutations = msprime.MutationTable()
@@ -115,7 +117,7 @@ def test():
                             mutations=mutations)
         S.append(ts.num_mutations)
     S2 = []
-    for i in msprime.simulate(100, recombination_rate=25, mutation_rate=25, num_replicates=1000):
+    for i in msprime.simulate(100, recombination_rate=0, mutation_rate=25, num_replicates=1000):
         # S2.append(i.tables.nodes[next(i.trees()).root].time)
         S2.append(i.num_mutations)
     return S, S2
